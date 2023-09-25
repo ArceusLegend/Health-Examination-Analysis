@@ -26,16 +26,17 @@ def draw_cat_plot():
 
     # Group and reformat the data to split it by 'cardio'. Show the counts of each feature.
     df_cat = df_cat.groupby(['cardio', 'variable', 'value'])['variable'].count().reset_index(name='total')
+    # Convert the 'value' column to an object for hue parameter in catplot() to work (dtype was originally int64)
     df_cat['value'] = df_cat['value'].astype(str)
 
     # Draw the catplot with 'sns.catplot()'
     # Get the figure for the output
-    #fig = sns.catplot(data=df_cat, x='variable', y='total', col='cardio',
-             #kind='bar', errorbar=None, hue='value')  
+    fig = sns.catplot(data=df_cat, x='variable', y='total', col='cardio',
+             kind='bar', errorbar=None, hue='value')  
 
-    # Do not modify the next two lines
-    #fig.savefig('catplot.png')
-    #return fig
+    # Save and export the figure as catplot.png
+    fig.savefig('catplot.png')
+    return fig
 
 draw_cat_plot()
 
@@ -46,21 +47,22 @@ def draw_heat_map():
     # 0. Copy original df to new dataframe
     df_heat = df.copy()
 
-    # Create boolean mask to select and filter out rows based on following conditions:
+    # Create index mask to select and filter out rows based on following conditions:
     # 1. Segments where diastolic pressure (ap_lo) is higher than systolic (ap_hi)
     # 2. Segments where height is less than the 2.5th percentile or greater than the 97.5th percentile
     # 3. Segments where weight is less than the 2.5th percentile or greater than the 97.5th percentile
     cont = df_heat.loc[
         (df['ap_lo'] >= df['ap_hi']) |
-        (df['height'] <= df['height'].quantile(0.025)) | (df['height'] >= df['height'].quantile(0.975)) |
-        (df['weight'] <= df['weight'].quantile(0.025)) | (df['weight'] >= df['weight'].quantile(0.975))
+        (df['height'] < df['height'].quantile(0.025)) | (df['height'] > df['height'].quantile(0.975)) |
+        (df['weight'] < df['weight'].quantile(0.025)) | (df['weight'] > df['weight'].quantile(0.975))
     ].index
 
     # Remove the rows selected by cont
     df_heat = df_heat.drop(cont)
 
     # Calculate the correlation matrix
-    corr = df_heat.corr(method='spearman')
+    # Uses the default method ('pearson')
+    corr = df_heat.corr()
 
     # Generate a mask for the upper triangle
     mask = np.triu(np.ones_like(corr))
@@ -74,7 +76,7 @@ def draw_heat_map():
     sns.heatmap(corr, mask=mask, annot=True, fmt=".1f", ax=ax)
 
 
-    #Export the figure as a png
+    #Export the figure as heatmap.png
     fig.savefig('heatmap.png')
     return fig
 
